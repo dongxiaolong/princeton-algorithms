@@ -1,155 +1,162 @@
-import java.util.LinkedList;
-
 public class Board {
-    private static final int SPACE = 0;
+    private int[][] matrix; // blocks
+    private int N; // deimension
+    private int posX, posY; // 0' position
 
-    private int[][] blocks;
-
+    // construct a board from an N-by-N array of blocks
+    // (where blocks[i][j] = block in row i, column j)
     public Board(int[][] blocks) {
-        this.blocks = copy(blocks);
-    }
-
-    private int[][] copy(int[][] blocks) {
-        int[][] copy = new int[blocks.length][blocks.length];
-        for (int row = 0; row < blocks.length; row++)
-            for (int col = 0; col < blocks.length; col++)
-                copy[row][col] = blocks[row][col];
-
-        return copy;
-    }
-
-    public int dimension() {
-        return blocks.length;
-    }
-
-    public int hamming() {
-        int count = 0;
-        for (int row = 0; row < blocks.length; row++)
-            for (int col = 0; col < blocks.length; col++)
-                if (blockIsNotInPlace(row, col)) count++;
-
-        return count;
-    }
-
-    private boolean blockIsNotInPlace(int row, int col) {
-        int block = block(row, col);
-
-        return !isSpace(block) && block != goalFor(row, col);
-    }
-
-    private int goalFor(int row, int col) {
-        return row*dimension() + col + 1;
-    }
-
-    private boolean isSpace(int block) {
-        return block == SPACE;
-    }
-
-    public int manhattan() {
-        int sum = 0;
-        for (int row = 0; row < blocks.length; row++)
-            for (int col = 0; col < blocks.length; col++)
-                sum += calculateDistances(row, col);
-
-        return sum;
-    }
-
-    private int calculateDistances(int row, int col) {
-        int block = block(row, col);
-
-        return (isSpace(block)) ? 0 : Math.abs(row - row(block)) + Math.abs(col - col(block));
-    }
-
-    private int block(int row, int col) {
-        return blocks[row][col];
-    }
-
-    private int row (int block) {
-        return (block - 1) / dimension();
-    }
-
-    private int col (int block) {
-        return (block - 1) % dimension();
-    }
-
-    public boolean isGoal() {
-        for (int row = 0; row < blocks.length; row++)
-            for (int col = 0; col < blocks.length; col++)
-                if (blockIsInPlace(row, col)) return false;
-
-        return true;
-    }
-
-    private boolean blockIsInPlace(int row, int col) {
-        int block = block(row, col);
-
-        return !isSpace(block) && block != goalFor(row, col);
-    }
-
-    public Board twin() {
-        for (int row = 0; row < blocks.length; row++)
-            for (int col = 0; col < blocks.length - 1; col++)
-                if (!isSpace(block(row, col)) && !isSpace(block(row, col + 1)))
-                    return new Board(swap(row, col, row, col + 1));
-        throw new RuntimeException();
-    }
-
-    private int[][] swap(int row1, int col1, int row2, int col2) {
-        int[][] copy = copy(blocks);
-        int tmp = copy[row1][col1];
-        copy[row1][col1] = copy[row2][col2];
-        copy[row2][col2] = tmp;
-
-        return copy;
-    }
-
-    public boolean equals(Object y) {
-        if (y==this) return true;
-        if (y==null || !(y instanceof Board) || ((Board)y).blocks.length != blocks.length) return false;
-        for (int row = 0; row < blocks.length; row++)
-            for (int col = 0; col < blocks.length; col++)
-                if (((Board) y).blocks[row][col] != block(row, col)) return false;
-
-        return true;
-    }
-
-    public Iterable<Board> neighbors() {
-        LinkedList<Board> neighbors = new LinkedList<Board>();
-
-        int[] location = spaceLocation();
-        int spaceRow = location[0];
-        int spaceCol = location[1];
-
-        if (spaceRow > 0)               neighbors.add(new Board(swap(spaceRow, spaceCol, spaceRow - 1, spaceCol)));
-        if (spaceRow < dimension() - 1) neighbors.add(new Board(swap(spaceRow, spaceCol, spaceRow + 1, spaceCol)));
-        if (spaceCol > 0)               neighbors.add(new Board(swap(spaceRow, spaceCol, spaceRow, spaceCol - 1)));
-        if (spaceCol < dimension() - 1) neighbors.add(new Board(swap(spaceRow, spaceCol, spaceRow, spaceCol + 1)));
-
-        return neighbors;
-    }
-
-    private int[] spaceLocation() {
-        for (int row = 0; row < blocks.length; row++)
-            for (int col = 0; col < blocks.length; col++)
-                if (isSpace(block(row, col))) {
-                    int[] location = new int[2];
-                    location[0] = row;
-                    location[1] = col;
-
-                    return location;
+        N = blocks.length;
+        matrix = new int[N][N];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                matrix[i][j] = blocks[i][j];
+                if (matrix[i][j] == 0) {
+                    posX = i;
+                    posY = j;
                 }
-        throw new RuntimeException();
-    }
-
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-        str.append(dimension() + "\n");
-        for (int row = 0; row < blocks.length; row++) {
-            for (int col = 0; col < blocks.length; col++)
-                str.append(String.format("%2d ", block(row, col)));
-            str.append("\n");
+            }
         }
-
-        return str.toString();
     }
+
+    // board dimension N
+    public int dimension() {
+        return N;
+    }
+
+    // number of blocks out of place
+    public int hamming() {
+        int hammingDis = 0;
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (matrix[i][j] == 0) continue;
+                if (i*N+j+1 != matrix[i][j]) hammingDis++;
+            }
+        }
+        return hammingDis;
+    }
+
+    // sum of Manhattan distances between blocks and goal
+    public int manhattan() {
+        int manhattanDis = 0;
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (matrix[i][j] == 0) continue;
+                int x, y;
+                if (matrix[i][j] % N == 0) {
+                    x = matrix[i][j] / N - 1;
+                    y = N - 1;
+                } else {
+                    x = matrix[i][j] / N;
+                    y = matrix[i][j] % N - 1;
+                }
+                manhattanDis += Math.abs(i-x) + Math.abs(j-y);
+            }
+        }
+        return manhattanDis;
+    }
+
+    // is this board the goal board?
+    public boolean isGoal() {
+        if (posX != N-1 || posY != N-1) return false;
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (matrix[i][j] == 0) continue;
+                if (i*N+j+1 != matrix[i][j]) return false;
+            }
+        }
+        return true;
+    }
+
+    // a board obtained by exchanging two adjacent blocks in the same row
+    public Board twin() {
+        int x = -1, y = -1;
+        int[][] tmpBlock = new int[N][N];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (j < N-1 && matrix[i][j] != 0 && matrix[i][j+1] != 0) {
+                    x = i;
+                    y = j;
+                }
+                tmpBlock[i][j] = matrix[i][j];
+            }
+        }
+        if (x == -1 && y == -1) throw new IllegalArgumentException();
+        int t = tmpBlock[x][y];
+        tmpBlock[x][y] = tmpBlock[x][y+1];
+        tmpBlock[x][y+1] = t;
+        return new Board(tmpBlock);
+    }
+
+    // does this board equal y?
+    public boolean equals(Object y) {
+        if (y == this) return true;
+        if (y == null) return false;
+        if (y.getClass() != this.getClass()) return false;
+        Board that = (Board) y;
+        if (this.dimension() != that.dimension()) return false;
+        int sz = this.dimension();
+        for (int i = 0; i < sz; i++) {
+            for (int j = 0; j < sz; j++) {
+                if (this.matrix[i][j] != that.matrix[i][j])
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    // all neighboring boards
+    public Iterable<Board> neighbors() {
+        Queue<Board> queue = new Queue<Board>();
+        int[] dx = {0, 0, -1, 1};
+        int[] dy = {1, -1, 0, 0};
+        for (int i = 0; i < 4; i++) {
+            int x = posX + dx[i];
+            int y = posY + dy[i];
+
+            if (x < N && x >= 0 && y < N && y >= 0) {
+                int tmp = matrix[posX][posY];
+                matrix[posX][posY] = matrix[x][y];
+                matrix[x][y] = tmp;
+                queue.enqueue(new Board(matrix));
+                tmp = matrix[posX][posY];
+                matrix[posX][posY] = matrix[x][y];
+                matrix[x][y] = tmp;
+            }
+        }
+        return queue;
+    }
+
+    // string representation of the board (in the output format specified below)
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        s.append(N + "\n");
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                s.append(String.format("%2d ", matrix[i][j]));
+            }
+            s.append("\n");
+        }
+        return s.toString();
+    }
+
+    public static void main(String[] args) {
+        int[][] mat = {
+                {1, 2, 3},
+                {4, 6, 0},
+                {7, 8, 5}
+        };
+        //hamming
+        //manhattan
+        Board b = new Board(mat);
+        Board c = b.twin().twin();
+        StdOut.println(b.equals(c));
+        StdOut.print(b.toString());
+        for (Board it : b.neighbors()) {
+            StdOut.print(it.toString());
+            StdOut.println("hamming: " + it.hamming());
+            StdOut.println("manhattan: " + it.manhattan());
+        }
+    }
+
 }
